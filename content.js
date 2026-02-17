@@ -23,6 +23,9 @@
     'hianime.do',
     'hianime.pe',
     'hianime.cx',
+    'hianime.me',
+    'hianime.vc',
+    'hianime.ps',
     'hianime.to',
     'hianimez.is',
     'hianimez.to'
@@ -30,7 +33,7 @@
 
   const SITE_CONFIGS = [
     {
-      hostRe: /(^|\.)hianime\.nz$|(^|\.)hianime\.bz$|(^|\.)hianime\.do$|(^|\.)hianime\.pe$|(^|\.)hianime\.cx$|(^|\.)hianime\.to$|(^|\.)hianimez\.is$|(^|\.)hianimez\.to$/,
+      hostRe: /(^|\.)hianime\.nz$|(^|\.)hianime\.bz$|(^|\.)hianime\.do$|(^|\.)hianime\.pe$|(^|\.)hianime\.cx$|(^|\.)hianime\.me$|(^|\.)hianime\.vc$|(^|\.)hianime\.ps$|(^|\.)hianime\.to$|(^|\.)hianimez\.is$|(^|\.)hianimez\.to$/,
       containerSelector: '#content-comments',
       commentSelectors: [
         '#content-comments div[id^="cm-"]',

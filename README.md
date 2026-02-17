@@ -14,7 +14,17 @@ Features
 - No tracking, no data collection
 
 Supported sites
+- https://hianime.nz/*
+- https://hianime.bz/*
+- https://hianime.do/*
+- https://hianime.pe/*
+- https://hianime.cx/*
+- https://hianime.me/*
+- https://hianime.vc/*
+- https://hianime.ps/*
 - https://hianime.to/*
+- https://hianimez.is/*
+- https://hianimez.to/*
 
 Privacy
 All filtering runs locally in your browser. This extension does not collect, transmit, or store personal data.
