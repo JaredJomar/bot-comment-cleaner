@@ -17,47 +17,44 @@
     reasonCounts: {}
   };
 
-  const VALID_HOSTS = [
-    'hianime.nz',
-    'hianime.bz',
-    'hianime.do',
-    'hianime.pe',
-    'hianime.cx',
-    'hianime.me',
-    'hianime.vc',
-    'hianime.ps',
-    'hianime.to',
-    'hianimez.is',
-    'hianimez.to'
-  ];
+  let validHosts = [];
 
-  const SITE_CONFIGS = [
-    {
-      hostRe: /(^|\.)hianime\.nz$|(^|\.)hianime\.bz$|(^|\.)hianime\.do$|(^|\.)hianime\.pe$|(^|\.)hianime\.cx$|(^|\.)hianime\.me$|(^|\.)hianime\.vc$|(^|\.)hianime\.ps$|(^|\.)hianime\.to$|(^|\.)hianimez\.is$|(^|\.)hianimez\.to$/,
-      containerSelector: '#content-comments',
-      commentSelectors: [
-        '#content-comments div[id^="cm-"]',
-        '#content-comments .list-comment',
-        '#content-comments .comment-item',
-        '#content-comments .comment',
-        '#content-comments .comment-main',
-        '#content-comments .comment-wrap',
-        '#content-comments .comment-body',
-        '#content-comments .comment-content',
-        '#content-comments .item',
-        '#content-comments li',
-        '#content-comments > div'
-      ]
+  const SITE_CONFIG = {
+    containerSelector: '#content-comments',
+    commentSelectors: [
+      '#content-comments div[id^="cm-"]',
+      '#content-comments .list-comment',
+      '#content-comments .comment-item',
+      '#content-comments .comment',
+      '#content-comments .comment-main',
+      '#content-comments .comment-wrap',
+      '#content-comments .comment-body',
+      '#content-comments .comment-content',
+      '#content-comments .item',
+      '#content-comments li',
+      '#content-comments > div'
+    ]
+  };
+
+  function refreshValidHosts() {
+    if (Filters && typeof Filters.getValidHosts === 'function') {
+      const nextHosts = Filters.getValidHosts();
+      if (Array.isArray(nextHosts) && nextHosts.length > 0) {
+        validHosts = nextHosts;
+      }
     }
-  ];
+  }
 
   function getSiteConfig() {
     const host = window.location.hostname;
-    return SITE_CONFIGS.find(cfg => cfg.hostRe.test(host)) || null;
+    return isValidHost(host) ? SITE_CONFIG : null;
   }
 
   function isValidHost(host) {
-    return VALID_HOSTS.some(valid => host === valid || host.endsWith(`.${valid}`));
+    if (Filters && typeof Filters.isValidHost === 'function') {
+      return Filters.isValidHost(host);
+    }
+    return validHosts.some(valid => host === valid || host.endsWith(`.${valid}`));
   }
 
   function isHianimeDomain(host) {
@@ -181,6 +178,20 @@
     placeholders.forEach(el => el.remove());
   }
 
+  function renderTrustedHostList(infoList) {
+    if (!infoList) return;
+    infoList.innerHTML = '';
+    const currentHost = window.location.hostname;
+    validHosts.forEach(host => {
+      const item = document.createElement('li');
+      item.textContent = host;
+      if (currentHost === host || currentHost.endsWith(`.${host}`)) {
+        item.classList.add('bcc-info-current');
+      }
+      infoList.appendChild(item);
+    });
+  }
+
   function updatePanel(container, cfg) {
     const panel = document.querySelector('.bcc-panel') || createPanel();
     const scannedEl = panel.querySelector('.bcc-count-scanned');
@@ -195,6 +206,7 @@
       toggleStatus.textContent = SETTINGS.enabled ? 'Active' : 'Disabled';
       toggleStatus.classList.toggle('bcc-off', !SETTINGS.enabled);
     }
+    renderTrustedHostList(panel.querySelector('.bcc-info-list'));
     updateMinimizeIcon(panel);
   }
 
@@ -369,15 +381,7 @@
 
     const infoList = document.createElement('ul');
     infoList.className = 'bcc-info-list';
-    const currentHost = window.location.hostname;
-    VALID_HOSTS.forEach(host => {
-      const item = document.createElement('li');
-      item.textContent = host;
-      if (currentHost === host || currentHost.endsWith(`.${host}`)) {
-        item.classList.add('bcc-info-current');
-      }
-      infoList.appendChild(item);
-    });
+    renderTrustedHostList(infoList);
 
     infoBody.appendChild(infoDesc);
     infoBody.appendChild(infoList);
@@ -512,18 +516,33 @@
     observer.observe(container, { childList: true, subtree: true });
   }
 
+  function attachFilterUpdateListener() {
+    if (!Filters || typeof Filters.onDataUpdated !== 'function') return;
+    Filters.onDataUpdated(() => {
+      refreshValidHosts();
+      updatePanel();
+      const cfg = getSiteConfig();
+      if (!cfg) return;
+      const container = getContainer(cfg);
+      if (!container) return;
+      scanContainer(container, cfg);
+    });
+  }
+
   function start() {
+    refreshValidHosts();
     const host = window.location.hostname;
     if (isHianimeDomain(host) && !isValidHost(host)) {
       alert(
-        `Warning: This domain isn't in the official list and may be a phishing site. ` +
-          `Valid domains: ${VALID_HOSTS.join(', ')}`
+          `Warning: This domain isn't in the official list and may be a phishing site. ` +
+          `Valid domains: ${validHosts.join(', ')}`
       );
       return;
     }
 
     const cfg = getSiteConfig();
     if (!cfg) return;
+    attachFilterUpdateListener();
 
     const initialContainer = getContainer(cfg);
     if (initialContainer) {

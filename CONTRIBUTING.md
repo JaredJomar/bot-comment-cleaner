@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Bot Comment Cleaner. This project keeps all filtering local and does not call external APIs.
+Thanks for helping improve Bot Comment Cleaner. Comment scanning stays local; only public filter-data JSON is fetched for updates.
 
 ## Quick start
 1. Fork the repo and create a feature branch.
@@ -13,12 +13,13 @@ Thanks for helping improve Bot Comment Cleaner. This project keeps all filtering
 - Include both spam and legitimate comments to reduce false positives.
 
 ## Filter updates
-- Prefer adding new keywords to `wordlists/sexual-en.txt` over hardcoding in `filters.js`.
+- Prefer updating `remote/filters-data.json` over hardcoding patterns in `filters.js`.
+- Bump the `version` in `remote/filters-data.json` for each data change.
 - If you add regex patterns, keep them tight and avoid false positives.
 - When adding obfuscation handling, keep performance in mind.
 
 ## Style and safety
-- Keep everything local; no external network calls at runtime.
+- Keep runtime network usage limited to the approved remote filter-data JSON.
 - Avoid collecting or storing user data.
 
 ## Reporting issues

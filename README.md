@@ -4,13 +4,14 @@
 Hide spam/sexual bot comments locally while you browse. Lightweight, fast, and private.
 
 **Full description (Chrome Web Store)**
-Bot Comment Cleaner is a lightweight Chrome extension that removes spammy and sexual bot comments directly in your browser. It works entirely on your device using fast, local filters, so nothing is sent to any server.
+Bot Comment Cleaner is a lightweight Chrome extension that removes spammy and sexual bot comments directly in your browser. Comment scanning runs locally, and filter-data can be refreshed from the project's public GitHub JSON so updates can ship without a store release.
 
 Features
 - Hides spam/sexual bot comments on supported sites
 - On‑page control panel with scan stats
 - Toggle to show all comments anytime
 - Periodic rescans for lazy‑loaded threads
+- Remote filter-data updates with local fallback cache
 - No tracking, no data collection
 
 Supported sites
@@ -27,7 +28,7 @@ Supported sites
 - https://hianimez.to/*
 
 Privacy
-All filtering runs locally in your browser. This extension does not collect, transmit, or store personal data.
+Comment filtering runs locally in your browser. The extension can fetch public filter-data JSON from GitHub CDN endpoints, but it does not collect, transmit, or store personal data.
 
 ## Local install (developer mode)
 1. Open `chrome://extensions`
@@ -60,8 +61,11 @@ npm test
 Add more test cases to `tests/comments.json` over time and re-run the command.
 
 ## Customize filters
-Edit `filters.js` to add or tweak patterns.
-You can also add keywords to `wordlists/sexual-en.txt` (one term per line). This is loaded locally by the extension at runtime.
+Edit `remote/filters-data.json` for all data-driven filtering updates:
+- Increment `version` whenever filter data changes.
+- Keep `sexualKeywords`, `spamDomains`, `botPhrases`, `sexualEmojis`, and `validHosts` as plain arrays.
+- Extension load order is: bundled local JSON -> cached remote data -> latest remote data fetch.
+- If a newer remote version is fetched, patterns are rebuilt and comments are re-scanned automatically.
 
 ## License
 MIT

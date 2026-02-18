@@ -3,108 +3,122 @@
  * Hybrid approach: Fast regex patterns + optional ML classification
  */
 
-/**
- * Known spam/bot link patterns
- */
-const SPAM_DOMAINS = [
-  'lovex.su',
-  'lovex',
-  'onlyfans',
-  'onlyfans.',
-  'fans.ly',
-  'telegram',
-  't.me/',
-  'tele.gg',
-  'discord.gg',
-  'dc.gg',
-  'snapleaks',
-  'scrollx.org',
-  'hot1.top',
-  'hot1top',
-  'acort.me',
-  'bit.ly',
-  'goo.gl',
-  't.co',
-  'tinyurl.com',
-  'short.link',
-  'linktr.ee'
+const LOCAL_FILTER_DATA_PATH = 'remote/filters-data.json';
+const REMOTE_FILTER_SOURCES = [
+  'https://cdn.jsdelivr.net/gh/Dev-Dipesh/bot-comment-cleaner@main/remote/filters-data.json',
+  'https://raw.githubusercontent.com/Dev-Dipesh/bot-comment-cleaner/main/remote/filters-data.json'
 ];
+const REMOTE_FETCH_MIN_INTERVAL_MS = 30 * 60 * 1000;
+const STORAGE_KEY_FILTER_CACHE = 'bcc_filter_cache_v1';
+const STORAGE_KEY_LAST_FETCH_AT = 'bcc_filter_last_fetch_at_v1';
 
-/**
- * Sexual and inappropriate keywords (regex fragments).
- * These are hand-tuned and may include regex punctuation.
- */
-const BASE_SEXUAL_KEYWORDS = [
-  'nudes', 'nude', 'naked',
-  'porn', 'p0rn', 'p3orn',
-  'sex', 's.ex', 's­ex',
-  'xxx', 'xxnx',
-  'hentai', 'hent­ai',
-  'incest', 'mom son',
-  'd3rkweb', 'darkweb',
-  'rule34', 'r34',
-  'onlyfans', 'only fan',
-  'nsfw',
-  'cum', 'cock', 'pussy', 'dick', 'blowjob',
-  'horny', 'wet',
-  'telegram', 'telgram',
-  'snapchat', 'snapleaks',
-  'only fans'
-];
+const FALLBACK_FILTER_DATA = {
+  version: 1,
+  updatedAt: '2026-02-18',
+  spamDomains: [
+    'lovex.su',
+    'lovex',
+    'onlyfans',
+    'onlyfans.',
+    'fans.ly',
+    'telegram',
+    't.me/',
+    'tele.gg',
+    'discord.gg',
+    'dc.gg',
+    'snapleaks',
+    'scrollx.org',
+    'hot1.top',
+    'hot1top',
+    'acort.me',
+    'bit.ly',
+    'goo.gl',
+    't.co',
+    'tinyurl.com',
+    'short.link',
+    'linktr.ee'
+  ],
+  sexualKeywords: [
+    'nudes', 'nude', 'naked',
+    'porn', 'p0rn', 'p3orn',
+    'sex', 's.ex', 's­ex',
+    'xxx', 'xxnx',
+    'hentai', 'hent­ai',
+    'incest', 'mom son',
+    'd3rkweb', 'darkweb',
+    'rule34', 'r34',
+    'onlyfans', 'only fan',
+    'nsfw',
+    'cum', 'cock', 'pussy', 'dick', 'blowjob',
+    'horny', 'wet',
+    'telegram', 'telgram',
+    'snapchat', 'snapleaks',
+    'only fans'
+  ],
+  botPhrases: [
+    'my name is',
+    'follow me on',
+    'follow me on site',
+    'follow me',
+    'check my',
+    'dm me',
+    'contact here',
+    'contact me',
+    'send nudes',
+    'nudes here',
+    'free nudes',
+    'of link',
+    'sub onlyfans',
+    'hot girls',
+    'hot girl',
+    'hot singles',
+    'meet girls',
+    'join my discord',
+    'join our discord',
+    'discord me',
+    'tiktok for',
+    'no ads',
+    'ad-free',
+    'ad free',
+    'my telegram',
+    'uploaded all kind',
+    'click here',
+    'check now',
+    'go and check',
+    'visit my',
+    'see my',
+    'watch me',
+    'hi guys my',
+    'hello guys',
+    'hey guys'
+  ],
+  sexualEmojis: ['🔞', '🍆', '🍑', '💋', '👅', '👄', '🥵', '💦', '🔥', '❤️‍🔥'],
+  validHosts: [
+    'hianime.nz',
+    'hianime.bz',
+    'hianime.do',
+    'hianime.pe',
+    'hianime.cx',
+    'hianime.me',
+    'hianime.vc',
+    'hianime.ps',
+    'hianime.to',
+    'hianimez.is',
+    'hianimez.to'
+  ]
+};
 
-// Keywords loaded from local wordlist file (literal terms).
-let WORDLIST_SEXUAL_KEYWORDS = [];
-
-/**
- * Bot/spam phrases commonly used
- */
-const BOT_PHRASES = [
-  'my name is',
-  'follow me on',
-  'follow me on site',
-  'follow me',
-  'check my',
-  'dm me',
-  'contact here',
-  'contact me',
-  'send nudes',
-  'nudes here',
-  'free nudes',
-  'of link',
-  'sub onlyfans',
-  'hot girls',
-  'hot girl',
-  'hot singles',
-  'meet girls',
-  'join my discord',
-  'join our discord',
-  'discord me',
-  'tiktok for',
-  'no ads',
-  'ad-free',
-  'ad free',
-  'my telegram',
-  'uploaded all kind',
-  'click here',
-  'check now',
-  'go and check',
-  'visit my',
-  'see my',
-  'watch me',
-  'hi guys my',
-  'hello guys',
-  'hey guys'
-];
-
-/**
- * Emoji spam patterns (excessive sexual emojis)
- */
-const SEXUAL_EMOJIS = [
-  '🔞', '🍆', '🍑', '💋', '👅', '👄',
-  '🥵', '💦', '🔥', '❤️‍🔥'
-];
-
-const WORDLIST_PATH = 'wordlists/sexual-en.txt';
+let ACTIVE_FILTER_DATA = {
+  version: FALLBACK_FILTER_DATA.version,
+  updatedAt: FALLBACK_FILTER_DATA.updatedAt,
+  spamDomains: FALLBACK_FILTER_DATA.spamDomains.slice(),
+  sexualKeywords: FALLBACK_FILTER_DATA.sexualKeywords.slice(),
+  botPhrases: FALLBACK_FILTER_DATA.botPhrases.slice(),
+  sexualEmojis: FALLBACK_FILTER_DATA.sexualEmojis.slice(),
+  validHosts: FALLBACK_FILTER_DATA.validHosts.slice()
+};
+let ACTIVE_DATA_VERSION = ACTIVE_FILTER_DATA.version;
+const filterUpdateListeners = new Set();
 
 function compactText(input) {
   if (!input) return '';
@@ -115,39 +129,166 @@ function escapeRegex(input) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function rebuildSexualKeywordPattern(patterns) {
-  const wordlistEscaped = WORDLIST_SEXUAL_KEYWORDS.map(escapeRegex);
-  const fragments = BASE_SEXUAL_KEYWORDS.concat(wordlistEscaped);
-  patterns.sexualKeywords = new RegExp(fragments.join('|'), 'i');
+function uniqueNormalizedTerms(values, lowerCase = true) {
+  if (!Array.isArray(values)) return [];
+  const seen = new Set();
+  const output = [];
+  values.forEach(value => {
+    const str = String(value || '').trim();
+    if (!str) return;
+    const normalized = lowerCase ? str.toLowerCase() : str;
+    if (!normalized || normalized.startsWith('#') || seen.has(normalized)) return;
+    seen.add(normalized);
+    output.push(normalized);
+  });
+  return output;
+}
 
-  const compactFragments = fragments
+function normalizeFilterData(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const version = Number(raw.version);
+  if (!Number.isFinite(version) || version <= 0) return null;
+
+  return {
+    version,
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : '',
+    spamDomains: uniqueNormalizedTerms(raw.spamDomains || []),
+    sexualKeywords: uniqueNormalizedTerms(raw.sexualKeywords || []),
+    botPhrases: uniqueNormalizedTerms(raw.botPhrases || []),
+    sexualEmojis: uniqueNormalizedTerms(raw.sexualEmojis || [], false),
+    validHosts: uniqueNormalizedTerms(raw.validHosts || [])
+  };
+}
+
+function regexFromTerms(terms, { escape = false, flags = 'i' } = {}) {
+  const cleaned = terms.filter(Boolean);
+  if (cleaned.length === 0) return /$^/;
+  const fragments = escape ? cleaned.map(escapeRegex) : cleaned;
+  return new RegExp(fragments.join('|'), flags);
+}
+
+function rebuildPatterns(patterns) {
+  patterns.spamDomains = regexFromTerms(ACTIVE_FILTER_DATA.spamDomains, { escape: true, flags: 'i' });
+
+  const compactSpamDomains = ACTIVE_FILTER_DATA.spamDomains
+    .map(domain => domain.replace(/[^a-z0-9]/gi, ''))
+    .filter(domain => domain.length >= 4);
+  patterns.spamDomainsCompact = regexFromTerms(compactSpamDomains, { flags: 'i' });
+
+  patterns.sexualKeywords = regexFromTerms(ACTIVE_FILTER_DATA.sexualKeywords, { flags: 'i' });
+
+  const compactSexualKeywords = ACTIVE_FILTER_DATA.sexualKeywords
     .map(fragment => fragment.replace(/[^a-z0-9]/gi, ''))
     .filter(fragment => fragment.length >= 3);
-  patterns.compactSexualKeywords = new RegExp(compactFragments.join('|'), 'i');
-}
+  patterns.compactSexualKeywords = regexFromTerms(compactSexualKeywords, { flags: 'i' });
 
-function addWordlistKeywords(lines, patterns) {
-  const normalized = lines
-    .map(line => line.trim().toLowerCase())
-    .filter(Boolean)
-    .filter(line => !line.startsWith('#'));
-  const merged = new Set([...WORDLIST_SEXUAL_KEYWORDS, ...normalized]);
-  WORDLIST_SEXUAL_KEYWORDS = Array.from(merged);
-  rebuildSexualKeywordPattern(patterns);
-}
+  patterns.botPhrases = regexFromTerms(ACTIVE_FILTER_DATA.botPhrases, { escape: true, flags: 'i' });
 
-async function loadSexualWordlist(patterns) {
-  const url = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
-    ? chrome.runtime.getURL(WORDLIST_PATH)
-    : WORDLIST_PATH;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const text = await res.text();
-    addWordlistKeywords(text.split(/\r?\n/), patterns);
-  } catch {
-    // Optional wordlist; ignore failures.
+  if (ACTIVE_FILTER_DATA.sexualEmojis.length === 0) {
+    patterns.excessiveSexualEmojis = /$^/g;
+  } else {
+    const emojiAlt = ACTIVE_FILTER_DATA.sexualEmojis.map(escapeRegex).join('|');
+    patterns.excessiveSexualEmojis = new RegExp(`((?:${emojiAlt})\\s*){3,}`, 'g');
   }
+}
+
+function getStorageArea() {
+  if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return null;
+  return chrome.storage.local;
+}
+
+function storageGet(keys) {
+  const area = getStorageArea();
+  if (!area) return Promise.resolve({});
+  return area.get(keys);
+}
+
+function storageSet(values) {
+  const area = getStorageArea();
+  if (!area) return Promise.resolve();
+  return area.set(values);
+}
+
+function notifyFilterDataUpdated(updateInfo) {
+  filterUpdateListeners.forEach(listener => {
+    try {
+      listener(updateInfo);
+    } catch {
+      // Ignore callback failures from consumers.
+    }
+  });
+}
+
+async function fetchJsonFromUrl(url) {
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const text = await response.text();
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function loadLocalBundledFilterData() {
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.getURL) return null;
+  const localUrl = chrome.runtime.getURL(LOCAL_FILTER_DATA_PATH);
+  const json = await fetchJsonFromUrl(localUrl);
+  return normalizeFilterData(json);
+}
+
+function applyFilterDataIfNewer(data, patterns) {
+  if (!data || data.version <= ACTIVE_DATA_VERSION) return false;
+  ACTIVE_FILTER_DATA = {
+    version: data.version,
+    updatedAt: data.updatedAt,
+    spamDomains: data.spamDomains.slice(),
+    sexualKeywords: data.sexualKeywords.slice(),
+    botPhrases: data.botPhrases.slice(),
+    sexualEmojis: data.sexualEmojis.slice(),
+    validHosts: data.validHosts.slice()
+  };
+  ACTIVE_DATA_VERSION = data.version;
+  rebuildPatterns(patterns);
+  return true;
+}
+
+async function loadCachedRemoteFilterData(patterns) {
+  const stored = await storageGet([STORAGE_KEY_FILTER_CACHE]);
+  const cached = normalizeFilterData(stored[STORAGE_KEY_FILTER_CACHE]);
+  if (!cached) return false;
+  const applied = applyFilterDataIfNewer(cached, patterns);
+  if (applied) {
+    notifyFilterDataUpdated({ source: 'cache', version: cached.version });
+  }
+  return applied;
+}
+
+async function fetchRemoteFilterData() {
+  for (const sourceUrl of REMOTE_FILTER_SOURCES) {
+    const json = await fetchJsonFromUrl(sourceUrl);
+    const parsed = normalizeFilterData(json);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+async function refreshRemoteFilterData(patterns) {
+  const now = Date.now();
+  const stored = await storageGet([STORAGE_KEY_LAST_FETCH_AT]);
+  const lastFetchAt = Number(stored[STORAGE_KEY_LAST_FETCH_AT] || 0);
+  if (lastFetchAt > 0 && now - lastFetchAt < REMOTE_FETCH_MIN_INTERVAL_MS) return false;
+
+  await storageSet({ [STORAGE_KEY_LAST_FETCH_AT]: now });
+  const remoteData = await fetchRemoteFilterData();
+  if (!remoteData) return false;
+
+  const applied = applyFilterDataIfNewer(remoteData, patterns);
+  await storageSet({ [STORAGE_KEY_FILTER_CACHE]: remoteData });
+  if (applied) {
+    notifyFilterDataUpdated({ source: 'remote', version: remoteData.version });
+  }
+  return applied;
 }
 
 /**
@@ -155,33 +296,18 @@ async function loadSexualWordlist(patterns) {
  */
 const patterns = {
   // Excessive emojis (3+ sexual emojis in comment)
-  excessiveSexualEmojis: new RegExp(
-    `([${SEXUAL_EMOJIS.join('')}]\\s*){3,}`,
-    'g'
-  ),
+  excessiveSexualEmojis: /$^/g,
 
   // Known spam domains
-  spamDomains: new RegExp(
-    SPAM_DOMAINS.map(domain => domain.replace(/\./g, '\\.')).join('|'),
-    'i'
-  ),
-  spamDomainsCompact: new RegExp(
-    SPAM_DOMAINS
-      .map(domain => domain.replace(/[^a-z0-9]/gi, ''))
-      .filter(domain => domain.length >= 4)
-      .join('|'),
-    'i'
-  ),
+  spamDomains: /$^/,
+  spamDomainsCompact: /$^/,
 
   // Sexual keywords
   sexualKeywords: /$^/,
   compactSexualKeywords: /$^/,
 
   // Bot phrases
-  botPhrases: new RegExp(
-    BOT_PHRASES.join('|'),
-    'i'
-  ),
+  botPhrases: /$^/,
 
   // Suspicious link patterns (shortened URLs, multiple links)
   multipleLinks: /https?:\/\/[^\s]+.*https?:\/\/[^\s]+/i,
@@ -196,8 +322,15 @@ const patterns = {
   suspiciousTld: /\.(top|fun|live|xyz|club|site|online|pro|cc|me|link)(\/|$)/i
 };
 
-rebuildSexualKeywordPattern(patterns);
-loadSexualWordlist(patterns);
+rebuildPatterns(patterns);
+loadLocalBundledFilterData().then(localData => {
+  if (applyFilterDataIfNewer(localData, patterns)) {
+    notifyFilterDataUpdated({ source: 'local', version: ACTIVE_DATA_VERSION });
+  }
+  loadCachedRemoteFilterData(patterns).finally(() => {
+    refreshRemoteFilterData(patterns);
+  });
+});
 
 /**
  * Normalize text to catch obfuscation (zero-width, separators, homoglyph spacing)
@@ -226,18 +359,26 @@ function classifyComment(text, username, links) {
   let confidence = 0;
   const normalized = normalizeText(text);
   const compact = compactText(text);
+  const hasKnownSpamDomain = (
+    patterns.spamDomains.test(text) ||
+    patterns.spamDomains.test(normalized) ||
+    patterns.spamDomainsCompact.test(compact) ||
+    links.some(link => (
+      patterns.spamDomains.test(link.href) ||
+      patterns.spamDomains.test(normalizeText(link.href))
+    ))
+  );
 
-  // Fast check: Empty or very short comments
-  if (!text || text.length < 20) {
+  // Fast check: Empty comments. Keep short domain-only spam comments eligible.
+  if (!text) {
+    return { isSpam: false, confidence: 0, reasons: [] };
+  }
+  if (text.length < 20 && !hasKnownSpamDomain) {
     return { isSpam: false, confidence: 0, reasons: [] };
   }
 
   // 1. Check for known spam domains (HIGH confidence)
-  if (
-    patterns.spamDomains.test(text) ||
-    patterns.spamDomains.test(normalized) ||
-    patterns.spamDomainsCompact.test(compact)
-  ) {
+  if (hasKnownSpamDomain) {
     reasons.push('Contains known spam domain');
     confidence += 0.7;
   }
@@ -388,10 +529,39 @@ function resetStats() {
   stats.totalLegitimate = 0;
 }
 
+function onDataUpdated(listener) {
+  if (typeof listener !== 'function') return () => {};
+  filterUpdateListeners.add(listener);
+  return () => filterUpdateListeners.delete(listener);
+}
+
+function getFilterDataInfo() {
+  return {
+    version: ACTIVE_DATA_VERSION,
+    updatedAt: ACTIVE_FILTER_DATA.updatedAt,
+    sourceUrls: REMOTE_FILTER_SOURCES.slice()
+  };
+}
+
+function getValidHosts() {
+  return ACTIVE_FILTER_DATA.validHosts.slice();
+}
+
+function isValidHost(host) {
+  const normalizedHost = String(host || '').toLowerCase();
+  return ACTIVE_FILTER_DATA.validHosts.some(valid => {
+    return normalizedHost === valid || normalizedHost.endsWith(`.${valid}`);
+  });
+}
+
 // Expose to content script without modules
 window.BotCommentFilters = {
   classifyComment,
   batchClassify,
   getStats,
-  resetStats
+  resetStats,
+  onDataUpdated,
+  getFilterDataInfo,
+  getValidHosts,
+  isValidHost
 };

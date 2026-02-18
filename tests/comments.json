@@ -23,8 +23,89 @@
   {
     "text": "Check this out: https://bit.ly/xyz",
     "username": "user1234",
-    "links": [{"href":"https://bit.ly/xyz"}],
+    "links": [
+      {
+        "href": "https://bit.ly/xyz"
+      }
+    ],
     "expectedSpam": true,
     "note": "Shortened spam domain"
+  },
+  {
+    "text": "Hi! 💟💙 My nud­es pho­tos + vid­eo 👉 hot­1­.­top 👄💋",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 1"
+  },
+  {
+    "text": "Hi! 💎😍 My nud­es pho­tos vid­eo 👉 hot­1­.­top 💘💋",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 2"
+  },
+  {
+    "text": "Hi! 💟🍀 My n-u-d-e-s photos + video 👉 [ H O T 1 . T O P ] 💘💘",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 3"
+  },
+  {
+    "text": "Hi! 💕🍀 My n­udes ph­otos 👉 hot1.­top 😍💟",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 4"
+  },
+  {
+    "text": "Hi! 😘👄 My n­udes ph­otos v­ideo 👉 hot1.­top 🔥💖",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 5"
+  },
+  {
+    "text": "Hi💋💋 guys My name is Mia❤️ i'm h­or­ny💦 Follow me on site 👉 LOVEX­.­SU",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 6"
+  },
+  {
+    "text": "Hi! 💫🍓 My nud­es pho­tos vid­eo 👉 hot­1­.­top 😍🧡",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 7"
+  },
+  {
+    "text": "Follow me on site 👉 LOVEX­.­SU",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Real-world spam sample 8"
+  },
+  {
+    "text": "My name is Mia❤️",
+    "username": "lovex.su_mia",
+    "links": [],
+    "expectedSpam": false,
+    "note": "Known gap: benign text with spammy username"
+  },
+  {
+    "text": "👉 LOVEX­.­SU",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Short domain-only spam text"
+  },
+  {
+    "text": "LOVEX­.­SU",
+    "username": "",
+    "links": [],
+    "expectedSpam": true,
+    "note": "Very short domain-only spam text"
   }
 ]
