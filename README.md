@@ -44,6 +44,14 @@ From the `bot-comment-cleaner/` folder:
 ```
 
 This creates `dist/bot-comment-cleaner.zip`.
+The release zip includes only runtime extension files (`manifest.json`, scripts, styles, `icons/`, and `remote/`).
+
+## Release checklist
+1. If extension code/permissions/manifest changed, bump `manifest.json` version.
+2. If only filter data changed, update `remote/filters-data.json` and bump its `version`.
+3. Run `npm test`.
+4. Build zip with `./release.sh`.
+5. Upload `dist/bot-comment-cleaner.zip` to Chrome Web Store when a new extension version is needed.
 
 ## Run local tests
 From the `bot-comment-cleaner/` folder:

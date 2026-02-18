@@ -9,10 +9,15 @@ rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
 cd "$ROOT_DIR"
-zip -r "$ZIP_PATH" . \
-  -x "./dist/*" \
-  -x "./.git/*" \
-  -x "./.DS_Store" \
-  -x "./*.zip"
+
+# Package only files required at runtime by the extension.
+zip -r "$ZIP_PATH" \
+  manifest.json \
+  filters.js \
+  content.js \
+  styles.css \
+  icons \
+  remote \
+  -x "*/.DS_Store"
 
 echo "Created $ZIP_PATH"
