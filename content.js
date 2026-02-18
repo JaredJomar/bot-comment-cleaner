@@ -464,7 +464,7 @@
     el.dataset.bccProcessed = '1';
 
     const { text, username, links } = extractCommentData(el);
-    if (!text || text.length < 20) return;
+    if (!text) return;
 
     runtimeStats.scannedComments += 1;
 
