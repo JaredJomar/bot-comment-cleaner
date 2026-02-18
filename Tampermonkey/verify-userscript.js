@@ -36,7 +36,7 @@ for (const key of requiredMeta) {
   }
 }
 
-const requiredGrants = ['GM_getValue', 'GM_setValue', 'GM_addStyle'];
+const requiredGrants = ['GM_getValue', 'GM_setValue', 'GM_addStyle', 'GM_xmlhttpRequest'];
 for (const grant of requiredGrants) {
   const grantRe = new RegExp(`^\\/\\/\\s+@grant\\s+${grant}\\b`, 'm');
   if (!grantRe.test(text)) {
