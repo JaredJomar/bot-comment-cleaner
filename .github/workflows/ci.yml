@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate remote filter data JSON
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'remote/filters-data.json';
+          const raw = fs.readFileSync(path, 'utf8');
+          const data = JSON.parse(raw);
+
+          const requiredArrays = [
+            'spamDomains',
+            'sexualKeywords',
+            'botPhrases',
+            'sexualEmojis',
+            'validHosts'
+          ];
+
+          if (!Number.isFinite(Number(data.version)) || Number(data.version) <= 0) {
+            throw new Error('filters-data.json: version must be a positive number');
+          }
+
+          for (const key of requiredArrays) {
+            if (!Array.isArray(data[key])) {
+              throw new Error(`filters-data.json: ${key} must be an array`);
+            }
+            for (const value of data[key]) {
+              if (typeof value !== 'string' || value.trim().length === 0) {
+                throw new Error(`filters-data.json: ${key} must contain non-empty strings only`);
+              }
+            }
+            const uniqueSize = new Set(data[key]).size;
+            if (uniqueSize !== data[key].length) {
+              throw new Error(`filters-data.json: ${key} contains duplicate values`);
+            }
+          }
+
+          console.log('filters-data.json schema validation passed');
+          NODE
+
+      - name: Run tests
+        run: npm test
